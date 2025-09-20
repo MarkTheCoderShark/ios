@@ -1,0 +1,426 @@
+AI To-Do & Communications iOS App — MVP (Updated with Messaging & Shared To-Dos)
+
+Fresh, clean iOS-native spec with Gmail integration, in-app messaging, and shareable tasks/projects.
+
+Screen Map (Mermaid)
+flowchart TD
+  A[App Launch] --> B{Authenticated?}
+  B -- No --> ONB[Onboarding Stack]
+  B -- Yes --> H[Home]
+
+  %% Onboarding
+  ONB --> O1[Welcome]
+  O1 --> O2[Sign in (Apple/Google)]
+  O2 --> O3[Permissions: Notifications, Speech(opt), Background]
+  O3 --> O4[Integrations: Gmail OAuth (Read-only)]
+  O4 --> O5[Preferences: Brief Time, Workdays]
+  O5 --> H
+
+  %% Main Tabs
+  H -->|Tab| T[Tasks]
+  H -->|Tab| C[Communications]
+  H -->|Tab| X[Assistant]
+  H -->|Profile| S[Settings]
+
+  %% Home
+  H --> H1[AI Daily Brief Card]
+  H --> H2[Top 3 Tasks (AI)]
+  H --> H3[Inbox Snapshot (Gmail + Notes + Mentions)]
+  H --> CAP[Universal + Capture]
+
+  %% Tasks
+  T --> T1[Segment: Inbox | Today | Upcoming | Completed | Projects/Tags]
+  T --> T2[Task List]
+  T2 --> T3[Task Detail]
+  T3 --> T4[Assignments & Followers]
+  C -->|Convert to Task| T2
+  MSGT[Message ↔ Task updates] --> T2
+
+  %% Comms (Notes | Gmail | Messages)
+  C --> C1[Segment: Notes | Gmail | Messages]
+
+  C1 --> N1[Notes List]
+  N1 --> N2[Summarize / Extract Tasks]
+
+  C1 --> G1[Gmail List]
+  G1 --> G2[Email Detail]
+  G2 --> G3[AI Summary + Action Items]
+  G3 -->|Create tasks| T2
+
+  C1 --> M1[Messages: Threads]
+  M1 --> M2[Thread Detail]
+  M2 --> M3[Compose, @mentions, Attachments]
+  M2 --> M4[Share To-Do: create/attach task]
+  M2 --> M5[Participants & Permissions]
+  M2 --> M6[Thread → Project Link]
+
+  %% Assistant
+  X --> X1[Chat UI]
+  X1 --> X2[Prompt Chips]
+  X1 --> X3[Results as Cards (Tasks/Summaries)]
+  X3 -->|One-tap actions| T2
+  X3 -->|Search| G1
+
+  %% Settings
+  S --> S1[Account]
+  S --> S2[Integrations (Gmail)]
+  S --> S3[Preferences]
+  S --> S4[Notifications]
+  S --> S5[Privacy & Data]
+  S --> S6[People & Invites]
+
+1) What We’re Adding
+Messaging (lightweight, business-grade)
+
+1:1 and small group threads (DMs + named groups).
+
+@mentions and inline message → task conversion.
+
+Attach tasks into the conversation; updates reflect in thread.
+
+Read states (delivered/read) with user setting to hide read receipts.
+
+File attachments (images/PDF) with virus scan (server-side) and preview.
+
+Shared To-Dos (assign + follow)
+
+Assignments: owner, assignees, followers.
+
+Shared projects/tags: project members see/act on tasks.
+
+Permissions: Owner / Editor / Commenter (per task & per project).
+
+Thread ↔ Task link: every shared task has a canonical thread or activity feed.
+
+Philosophy: Messaging is a workbench, not a full Slack clone. Keep it simple, fast, and action-oriented.
+
+2) Information Architecture (unchanged tabs, richer Comms/Tasks)
+
+Home — AI Daily Brief, Top 3, Inbox Snapshot (now includes new mentions).
+
+Tasks — personal & shared tasks; projects/tags; assignment filters.
+
+Communications — Notes | Gmail | Messages segments.
+
+Assistant — chat + cards, can reference threads, tasks, emails.
+
+Settings — add People & Invites; notification controls for messages/mentions.
+
+3) Core Flows (new/updated)
+A) Start a Thread
+
+Comms → Messages → New Message
+
+Pick people (search by email/phone); optional Create Group (name + avatar).
+
+Compose → send.
+
+Thread header: name/participants; actions: Add People, Mute, Link Project.
+
+B) Turn a Message into a Task
+
+Long-press message → Create Task.
+
+Prepopulate title with message snippet; add due date/assignee/project.
+
+Task created, linked back; system post appears in thread: “Task created by X.”
+
+C) Share an Existing Task into a Thread
+
+Task Detail → Share to Thread.
+
+Choose thread → preview card posted (title, due, assignees, status).
+
+Changes to task (status, due) auto-post lightweight updates to thread.
+
+D) Assignments & Permissions
+
+Assign task to any participant with access to the project/thread.
+
+Permission checks: if user lacks access, prompt to Invite or Share read-only.
+
+Roles: Owner (full), Editor (edit task), Commenter (comment, mark complete if toggled).
+
+E) Invites & External Contacts
+
+Settings → People & Invites → Invite by email.
+
+External recipients receive a secure magic-link to join the thread/project.
+
+Guests limited by policy (e.g., can comment/complete but not delete).
+
+F) Notifications
+
+New message in followed threads; @mentions; task assignment; task status changes.
+
+Mute per thread/project; quiet hours.
+
+4) Screen Specs (new/expanded)
+Communications → Messages
+
+Threads list: avatar, name, last message, unread count, mute badge.
+
+Search: people, thread names, message body (FTS).
+
+Thread detail:
+
+Header: group name/avatars; buttons: add people, mute, link project.
+
+Composer: text, attachment (+), Task chip to insert existing task, AI chip (“summarize thread”, “extract tasks”).
+
+Message cells: bubble, timestamp, delivery/read ticks (configurable).
+
+Task card inline: status toggle, due, assignees; tap → Task Detail.
+
+System posts: joins, leaves, task updates.
+
+Tasks (updated)
+
+Filters: Assigned to me, I created, I follow.
+
+Task Detail (shared):
+
+Title, notes, due, priority, project/tags.
+
+Assignees & Followers (avatars).
+
+Permissions panel (role, share link).
+
+Activity: comments (from thread), updates.
+
+Settings (updated)
+
+People & Invites: directory of contacts; invite form; default role for new members.
+
+Notifications: message threads, mentions, task assignment, task changes; per-thread overrides.
+
+5) AI Behaviors (expanded)
+
+Thread Summarization (bounded): last N messages → 5 bullets + open questions.
+
+Action Extraction from thread: candidate tasks with confidence scores.
+
+Priority Fusion: tasks mentioned in active threads get a small recency/heat boost.
+
+NL Search: “What did I promise Alex?” searches tasks + thread snippets + email.
+
+Prompt patterns (Claude-ready)
+
+Thread Summary:
+Input: messages[{sender, ts, text}], task_refs[]
+Output JSON: { summary:[], decisions:[], blockers:[], next_steps:[] }
+
+Action Extraction:
+Input: messages plain text
+Output JSON: { actions:[{title, due_hint, assignee_hint, confidence}] }
+
+Priority Fusion:
+Input: tasks[], thread_meta[]
+Output JSON: { rankings:[{task_id, score, reason}] }
+
+Guardrails: never change membership or roles via AI; proposals only.
+
+6) Data Model Additions
+
+Conversation
+
+id, type("dm"|"group"), name?, ownerId?, createdAt, updatedAt, isMuted?
+
+ConversationMembership
+
+conversationId, userId, role("owner"|"editor"|"commenter"), joinedAt, notifications("all"|"mentions"|"muted")
+
+Message
+
+id, conversationId, senderId, text, attachments[], linkedTaskIds[], createdAt, editedAt?
+
+Delivery/read: deliveredAt[], readAt[] (per user arrays or side table)
+
+Project (renamed from Tags/Projects concept)
+
+id, name, ownerId, visibility("private"|"shared"), createdAt
+
+ProjectMembership: projectId, userId, role
+
+Task (updated)
+
+assignees[], followers[]
+
+projectId?
+
+permissions: {ownerId, editors[], commenters[]}
+
+Link tables
+
+TaskConversationLink: taskId, conversationId, createdBy, createdAt
+
+MessageTaskLink: messageId, taskId
+
+7) Architecture & Services (Delta)
+
+MessagingService
+
+Realtime: WebSocket/Push channels per conversation.
+
+Send/receive messages, attachments, read receipts.
+
+Typing indicators (optional toggle).
+
+SharingService
+
+Invite flows (email), magic-link join, role assignment.
+
+ACL checks across tasks/projects/conversations.
+
+SearchService
+
+SQLite FTS5 indices for messages and tasks; scope by ACL.
+
+NotificationService
+
+Per conversation overrides; mention routing; batching.
+
+AIService (extended)
+
+Thread summarization/action extraction endpoints.
+
+Priority fusion scoring feature.
+
+Background Tasks
+
+Pull new messages (if push fails), reconcile read states, post digest of missed mentions.
+
+8) Security & Privacy
+
+TLS everywhere; encryption at rest.
+
+MVP: server-side encryption + per-tenant isolation.
+
+Roadmap: optional E2EE for DMs/projects (key management needed; affects search/AI).
+
+Access checks on every read/write; redact content from logs/analytics.
+
+External guests limited to shared items; audit trail for invites & access changes.
+
+9) Performance Targets
+
+Thread open < 300ms on cached list; history loads by pages.
+
+Send message RTT < 150ms (optimistic UI + ack).
+
+Task toggle from thread < 200ms; post update to thread in-line.
+
+Summarize thread: < 2s perceived (streaming bullets).
+
+10) QA & Edge Cases
+
+Large threads: paginate; “summarize last 50 messages” control.
+
+Revoked member: loses access immediately; historical messages hidden if policy demands.
+
+Cross-posting same task to multiple threads: dedupe system updates.
+
+Offline send: queue messages with clock skew correction; warn on attachment failures.
+
+Mentions for users without access to task/project: prompt to share or remove mention.
+
+11) Notifications (granular)
+
+Messages: new in followed threads (config: all/mentions/muted).
+
+Mentions: always notify unless global quiet hours.
+
+Task: assignment, due soon, status changes; per-task mute.
+
+Digest: daily brief; new mentions since last open.
+
+12) Ruthless Scope Control (MVP vs Later)
+
+Ship in MVP (collab slice)
+
+DMs + named groups (basic)
+
+Send text + attachments; read receipts (toggle)
+
+Create task from message; share existing task to thread
+
+Assignments, followers; shared projects with Owner/Editor/Commenter roles
+
+Invites by email; guest access with limited roles
+
+Mentions, per-thread mute; notifications for mentions/assignments
+
+Thread summarize & action extraction (AI)
+
+V2+
+
+Thread search across org; advanced filters
+
+Thread → Project automatic creation wizard
+
+E2EE for selected projects/DMs
+
+Voice messages; message reactions; polls
+
+Federation/inbox bridging (Slack/Teams)
+
+Advanced compliance exports & legal holds
+
+13) Engineering Seeds
+
+Task update system post (pseudocode)
+
+func onTaskStatusChanged(taskId: ID, by user: User, to status: Status) {
+  let linkedThreads = taskConversationLinks[taskId]
+  for threadId in linkedThreads {
+    postSystemMessage(
+      threadId,
+      text: "Task \(taskId) marked \(status.rawValue) by \(user.displayName)",
+      metadata: ["taskId": taskId, "event": "status_change"]
+    )
+  }
+}
+
+
+Permission check (central guard)
+
+func can(_ user: User, perform action: Action, on object: Resource) -> Bool {
+  // 1) Owner overrides
+  // 2) Direct role on object (task/project/conversation)
+  // 3) Inherited via project membership
+  // 4) Shared link capabilities (read/comment only)
+}
+
+
+Message → Task extraction (client)
+
+func createTask(from message: Message) -> TaskDraft {
+  TaskDraft(
+    title: message.text.truncate(120),
+    notes: "Created from message by \(message.senderName) on \(message.createdAt)",
+    linkedMessageId: message.id,
+    conversationId: message.conversationId
+  )
+}
+
+14) Updated KPIs (collab)
+
+Threads created/user/week
+
+Messages per active user/day
+
+Message → Task conversion rate
+
+Shared tasks % of total & completion rate
+
+Response time to @mentions (median)
+
+Retention lift for users in ≥1 shared project
+
+Final Notes on UX
+
+Keep Messages visually minimal: airy spacing, 1 accent color, clear hierarchy.
+
+Task cards inside threads should be compact but actionable (toggle + due + assignees).
+
+Always provide one-tap context: from message → task; from task → thread.
