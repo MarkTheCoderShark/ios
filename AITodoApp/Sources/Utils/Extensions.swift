@@ -36,16 +36,17 @@ extension Date {
 extension String {
     func extractMentions() -> [String] {
         let pattern = #"@(\w+)"#
-        let regex = try? NSRegularExpression(pattern: pattern, options: [])
-        let range = NSRange(location: 0, length: utf16.count)
 
-        let matches = regex?.matches(in: self, options: [], range: range) ?? []
+        do {
+            let regex = try NSRegularExpression(pattern: pattern, options: [])
+            let range = NSRange(location: 0, length: utf16.count)
+            let matches = regex.matches(in: self, options: [], range: range)
 
-        return matches.compactMap { match in
-            if let range = Range(match.range(at: 1), in: self) {
-                return String(self[range])
+            return matches.compactMap { match in
+                Range(match.range(at: 1), in: self).map { String(self[$0]) }
             }
-            return nil
+        } catch {
+            return []
         }
     }
 

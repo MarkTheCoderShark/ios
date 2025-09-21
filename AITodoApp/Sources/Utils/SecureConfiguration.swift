@@ -21,18 +21,12 @@ class SecureConfiguration {
         return ProcessInfo.processInfo.environment[key.rawValue]
     }
 
-    var openAIAPIKey: String {
-        guard let key = getValue(for: .openAIAPIKey), !key.isEmpty else {
-            fatalError("OpenAI API Key not configured. Add \(ConfigurationKey.openAIAPIKey.rawValue) to Info.plist")
-        }
-        return key
+    var openAIAPIKey: String? {
+        return getValue(for: .openAIAPIKey)?.isEmpty == false ? getValue(for: .openAIAPIKey) : nil
     }
 
-    var googleClientID: String {
-        guard let id = getValue(for: .googleClientID), !id.isEmpty else {
-            fatalError("Google Client ID not configured. Add \(ConfigurationKey.googleClientID.rawValue) to Info.plist")
-        }
-        return id
+    var googleClientID: String? {
+        return getValue(for: .googleClientID)?.isEmpty == false ? getValue(for: .googleClientID) : nil
     }
 
     var websocketURL: String {

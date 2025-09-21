@@ -1,11 +1,10 @@
-// swift-tools-version: 5.5
+// swift-tools-version: 5.7
 import PackageDescription
 
 let package = Package(
     name: "AITodoApp",
     platforms: [
-        .iOS(.v13),
-        .macOS(.v10_15)
+        .iOS(.v14)
     ],
     products: [
         .library(

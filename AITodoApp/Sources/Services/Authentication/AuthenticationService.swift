@@ -9,9 +9,9 @@ class AuthenticationService: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private let keychainService = "AITodoApp"
-    private let authTokenKey = "auth_token"
-    private let userIdKey = "user_id"
+    private let keychainService = KeychainManager.ServiceKeys.appService
+    private let authTokenKey = KeychainManager.ServiceKeys.authToken
+    private let userIdKey = KeychainManager.ServiceKeys.userId
 
     init() {
         checkAuthenticationState()
@@ -159,7 +159,8 @@ class AuthenticationService: ObservableObject {
 extension ASAuthorizationController {
     func performRequests() async throws -> [ASAuthorizationResult] {
         return try await withCheckedThrowingContinuation { continuation in
-            self.delegate = AuthorizationDelegate(continuation: continuation)
+            let delegate = AuthorizationDelegate(continuation: continuation)
+            self.delegate = delegate
             self.performRequests()
         }
     }

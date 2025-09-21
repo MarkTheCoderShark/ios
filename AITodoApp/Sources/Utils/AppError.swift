@@ -51,24 +51,24 @@ struct ErrorAlertModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert(
-                "Error",
-                isPresented: .constant(error != nil),
-                presenting: error
-            ) { _ in
-                Button("OK") {
-                    error = nil
-                }
-            } message: { error in
-                Text(error.localizedDescription)
-                    .font(.body)
-                +
-                Text("\n\n")
-                    .font(.caption)
-                +
-                Text(error.recoverySuggestion ?? "")
-                    .font(.caption)
+            .alert(isPresented: .constant(error != nil)) {
+                Alert(
+                    title: Text("Error"),
+                    message: Text(buildErrorMessage()),
+                    dismissButton: .default(Text("OK")) {
+                        error = nil
+                    }
+                )
             }
+    }
+
+    private func buildErrorMessage() -> String {
+        guard let error = error else { return "" }
+        var message = error.localizedDescription
+        if let suggestion = error.recoverySuggestion {
+            message += "\n\n\(suggestion)"
+        }
+        return message
     }
 }
 

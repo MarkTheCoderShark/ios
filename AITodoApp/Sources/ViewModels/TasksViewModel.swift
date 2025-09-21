@@ -26,14 +26,11 @@ class TasksViewModel: ObservableObject {
 
     private func setupBindings() {
         // Debounce search to avoid excessive fetches
-        $searchText
+        Publishers.CombineLatest($searchText, $selectedFilter)
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.fetchTasks()
+            .removeDuplicates { previous, current in
+                previous.0 == current.0 && previous.1 == current.1
             }
-            .store(in: &cancellables)
-
-        $selectedFilter
             .sink { [weak self] _ in
                 self?.fetchTasks()
             }
@@ -51,16 +48,16 @@ class TasksViewModel: ObservableObject {
         var predicates: [NSPredicate] = []
 
         if !searchText.isEmpty {
-            predicates.append(NSPredicate(format: "title CONTAINS[cd] %@ OR taskDescription CONTAINS[cd] %@", searchText, searchText))
+            predicates.append(NSPredicate(format: "title CONTAINS[cd] %@ OR notes CONTAINS[cd] %@", searchText, searchText))
         }
 
         switch selectedFilter {
         case .pending:
-            predicates.append(NSPredicate(format: "status == %@", "pending"))
+            predicates.append(NSPredicate(format: "statusRaw == %@", TaskStatus.pending.rawValue))
         case .completed:
-            predicates.append(NSPredicate(format: "status == %@", "completed"))
+            predicates.append(NSPredicate(format: "statusRaw == %@", TaskStatus.completed.rawValue))
         case .overdue:
-            predicates.append(NSPredicate(format: "dueDate < %@ AND status != %@", Date() as NSDate, "completed"))
+            predicates.append(NSPredicate(format: "dueDate < %@ AND statusRaw != %@", Date() as NSDate, TaskStatus.completed.rawValue))
         case .all:
             break
         }
@@ -84,25 +81,33 @@ class TasksViewModel: ObservableObject {
             return
         }
 
-        await context.perform { [weak self] in
+        let backgroundContext = PersistenceController.shared.backgroundContext()
+
+        await backgroundContext.perform { [weak self] in
             guard let self = self else { return }
 
-            let newTask = Task(context: self.context)
+            let newTask = Task(context: backgroundContext)
             newTask.id = UUID()
             newTask.title = title
-            newTask.taskDescription = description
-            newTask.priority = priority
+            newTask.notes = description
+            newTask.priority = TaskPriority(rawValue: priority) ?? .medium
             newTask.dueDate = dueDate
-            newTask.status = "pending"
+            newTask.status = .pending
             newTask.createdAt = Date()
+            newTask.updatedAt = Date()
+
+            // Get current user safely
+            if let currentUser = self.getCurrentUser(in: backgroundContext) {
+                newTask.owner = currentUser
+            }
 
             do {
-                try self.context.save()
-                DispatchQueue.main.async {
+                try backgroundContext.save()
+                await MainActor.run {
                     self.fetchTasks()
                 }
             } catch {
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.error = .coreDataError("Failed to create task: \(error.localizedDescription)")
                 }
             }
@@ -110,16 +115,22 @@ class TasksViewModel: ObservableObject {
     }
 
     func updateTask(_ task: Task) async {
-        await context.perform { [weak self] in
+        let backgroundContext = PersistenceController.shared.backgroundContext()
+        let taskObjectID = task.objectID
+
+        await backgroundContext.perform { [weak self] in
             guard let self = self else { return }
 
             do {
-                try self.context.save()
-                DispatchQueue.main.async {
+                let taskInBackground = try backgroundContext.existingObject(with: taskObjectID) as? Task
+                taskInBackground?.updatedAt = Date()
+
+                try backgroundContext.save()
+                await MainActor.run {
                     self.fetchTasks()
                 }
             } catch {
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.error = .coreDataError("Failed to update task: \(error.localizedDescription)")
                 }
             }
@@ -127,18 +138,23 @@ class TasksViewModel: ObservableObject {
     }
 
     func deleteTask(_ task: Task) async {
-        await context.perform { [weak self] in
+        let backgroundContext = PersistenceController.shared.backgroundContext()
+        let taskObjectID = task.objectID
+
+        await backgroundContext.perform { [weak self] in
             guard let self = self else { return }
 
-            self.context.delete(task)
-
             do {
-                try self.context.save()
-                DispatchQueue.main.async {
+                if let taskInBackground = try backgroundContext.existingObject(with: taskObjectID) as? Task {
+                    backgroundContext.delete(taskInBackground)
+                    try backgroundContext.save()
+                }
+
+                await MainActor.run {
                     self.fetchTasks()
                 }
             } catch {
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.error = .coreDataError("Failed to delete task: \(error.localizedDescription)")
                 }
             }
@@ -147,5 +163,13 @@ class TasksViewModel: ObservableObject {
 
     private func validateTaskInput(title: String) -> Bool {
         return !title.isEmpty && title.count <= 100
+    }
+
+    private func getCurrentUser(in context: NSManagedObjectContext) -> User? {
+        let request: NSFetchRequest<User> = User.fetchRequest()
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(format: "isActive == YES")
+
+        return try? context.fetch(request).first
     }
 }

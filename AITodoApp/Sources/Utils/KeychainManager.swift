@@ -10,6 +10,14 @@ enum KeychainError: Error {
 class KeychainManager {
     static let shared = KeychainManager()
 
+    // MARK: - Constants
+    struct ServiceKeys {
+        static let appService = "AITodoApp"
+        static let gmailAccessToken = "gmail_access_token"
+        static let authToken = "auth_token"
+        static let userId = "user_id"
+    }
+
     private init() {}
 
     func save(_ data: Data, service: String, account: String) throws {

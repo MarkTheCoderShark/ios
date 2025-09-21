@@ -40,7 +40,9 @@ enum TaskFilter: String, CaseIterable {
     var predicate: NSPredicate {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) else {
+            return NSPredicate(value: false)
+        }
 
         switch self {
         case .inbox:

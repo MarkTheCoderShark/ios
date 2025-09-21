@@ -7,8 +7,13 @@ class AIService: ObservableObject {
     @Published var taskSuggestions: [TaskSuggestion] = []
 
     private let baseURL = "https://api.openai.com/v1"
-    private let apiKey = SecureConfiguration.shared.openAIAPIKey
+    private let apiKey: String?
     private var cancellables = Set<AnyCancellable>()
+
+    override init() {
+        self.apiKey = SecureConfiguration.shared.openAIAPIKey
+        super.init()
+    }
 
     func generateDailyBrief() async -> DailyBrief? {
         await MainActor.run {
@@ -174,6 +179,10 @@ class AIService: ObservableObject {
     }
 
     private func callOpenAI(prompt: String, maxTokens: Int) async -> String? {
+        guard let apiKey = apiKey, !apiKey.isEmpty else {
+            print("OpenAI API key not configured")
+            return nil
+        }
         guard let url = URL(string: "\(baseURL)/chat/completions") else { return nil }
 
         var request = URLRequest(url: url)

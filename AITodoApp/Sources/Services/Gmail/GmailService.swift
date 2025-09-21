@@ -32,14 +32,22 @@ class GmailService: ObservableObject {
                 return
             }
 
-            let config = GIDConfiguration(clientID: SecureConfiguration.shared.googleClientID)
+            guard let clientID = SecureConfiguration.shared.googleClientID else {
+                await MainActor.run {
+                    self.errorMessage = "Google Client ID not configured"
+                    self.isLoading = false
+                }
+                return
+            }
+
+            let config = GIDConfiguration(clientID: clientID)
             GIDSignIn.sharedInstance.configuration = config
 
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController)
 
             if let accessToken = result.user.accessToken.tokenString {
                 self.accessToken = accessToken
-                try? KeychainManager.shared.saveString(accessToken, service: "AITodoApp", account: "gmail_access_token")
+                try? KeychainManager.shared.saveString(accessToken, service: KeychainManager.ServiceKeys.appService, account: KeychainManager.ServiceKeys.gmailAccessToken)
 
                 await MainActor.run {
                     self.isConnected = true
@@ -58,7 +66,7 @@ class GmailService: ObservableObject {
 
     func disconnectGmail() {
         accessToken = nil
-        try? KeychainManager.shared.delete(service: "AITodoApp", account: "gmail_access_token")
+        try? KeychainManager.shared.delete(service: KeychainManager.ServiceKeys.appService, account: KeychainManager.ServiceKeys.gmailAccessToken)
 
         DispatchQueue.main.async {
             self.isConnected = false
@@ -76,7 +84,13 @@ class GmailService: ObservableObject {
         }
 
         do {
-            let url = URL(string: "\(baseURL)/users/me/messages?maxResults=50&q=is:unread")!
+            guard let url = URL(string: "\(baseURL)/users/me/messages?maxResults=50&q=is:unread") else {
+                await MainActor.run {
+                    self.errorMessage = "Invalid URL for Gmail API"
+                    self.isLoading = false
+                }
+                return
+            }
             var request = URLRequest(url: url)
             request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
@@ -108,7 +122,12 @@ class GmailService: ObservableObject {
         guard let accessToken = accessToken else { return }
 
         do {
-            let url = URL(string: "\(baseURL)/users/me/messages/\(email.id)/modify")!
+            guard let url = URL(string: "\(baseURL)/users/me/messages/\(email.id)/modify") else {
+                await MainActor.run {
+                    self.errorMessage = "Invalid URL for Gmail API"
+                }
+                return
+            }
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -159,7 +178,7 @@ class GmailService: ObservableObject {
     }
 
     private func checkConnectionStatus() {
-        if let token = try? KeychainManager.shared.readString(service: "AITodoApp", account: "gmail_access_token") {
+        if let token = try? KeychainManager.shared.readString(service: KeychainManager.ServiceKeys.appService, account: KeychainManager.ServiceKeys.gmailAccessToken) {
             accessToken = token
             isConnected = true
         }
@@ -169,7 +188,9 @@ class GmailService: ObservableObject {
         guard let accessToken = accessToken else { return nil }
 
         do {
-            let url = URL(string: "\(baseURL)/users/me/messages/\(messageId)")!
+            guard let url = URL(string: "\(baseURL)/users/me/messages/\(messageId)") else {
+                return nil
+            }
             var request = URLRequest(url: url)
             request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
