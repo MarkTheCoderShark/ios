@@ -29,7 +29,8 @@ let package = Package(
                 .product(name: "SocketIO", package: "socket.io-client-swift"),
                 .product(name: "Alamofire", package: "Alamofire"),
                 .product(name: "Kingfisher", package: "Kingfisher"),
-            ]),
+            ],
+            path: "AITodoApp/Sources"),
         .testTarget(
             name: "AITodoAppTests",
             dependencies: ["AITodoApp"]),
