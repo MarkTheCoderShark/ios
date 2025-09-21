@@ -9,7 +9,7 @@ class AuthenticationService: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private let userDefaults = UserDefaults.standard
+    private let keychainService = "AITodoApp"
     private let authTokenKey = "auth_token"
     private let userIdKey = "user_id"
 
@@ -18,8 +18,8 @@ class AuthenticationService: ObservableObject {
     }
 
     func checkAuthenticationState() {
-        let hasToken = userDefaults.string(forKey: authTokenKey) != nil
-        let hasUserId = userDefaults.string(forKey: userIdKey) != nil
+        let hasToken = (try? KeychainManager.shared.readString(service: keychainService, account: authTokenKey)) != nil
+        let hasUserId = (try? KeychainManager.shared.readString(service: keychainService, account: userIdKey)) != nil
 
         DispatchQueue.main.async {
             self.isAuthenticated = hasToken && hasUserId
@@ -55,7 +55,8 @@ class AuthenticationService: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        guard let presentingViewController = UIApplication.shared.windows.first?.rootViewController else {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let presentingViewController = windowScene.windows.first?.rootViewController else {
             errorMessage = "Unable to present Google Sign In"
             isLoading = false
             return
@@ -71,7 +72,7 @@ class AuthenticationService: ObservableObject {
     }
 
     private func handleAppleSignIn(credential: ASAuthorizationAppleIDCredential) async {
-        let email = credential.email ?? "apple_user@example.com"
+        let email = credential.email ?? "apple_user_\(credential.user)@private.apple.com"
         let fullName = credential.fullName
         let displayName = [fullName?.givenName, fullName?.familyName]
             .compactMap { $0 }
@@ -82,7 +83,7 @@ class AuthenticationService: ObservableObject {
 
     private func handleGoogleSignIn(result: GIDSignInResult) async {
         let user = result.user
-        let email = user.profile?.email ?? "google_user@example.com"
+        let email = user.profile?.email ?? "user_\(user.userID ?? "unknown")@gmail.com"
         let displayName = user.profile?.name ?? "Google User"
 
         await createUser(email: email, displayName: displayName, provider: "google")
@@ -92,8 +93,8 @@ class AuthenticationService: ObservableObject {
         let token = UUID().uuidString
         let userId = UUID().uuidString
 
-        userDefaults.set(token, forKey: authTokenKey)
-        userDefaults.set(userId, forKey: userIdKey)
+        try? KeychainManager.shared.saveString(token, service: keychainService, account: authTokenKey)
+        try? KeychainManager.shared.saveString(userId, service: keychainService, account: userIdKey)
 
         await MainActor.run {
             self.isAuthenticated = true
@@ -124,7 +125,7 @@ class AuthenticationService: ObservableObject {
     }
 
     private func loadCurrentUser() {
-        guard let userIdString = userDefaults.string(forKey: userIdKey),
+        guard let userIdString = try? KeychainManager.shared.readString(service: keychainService, account: userIdKey),
               let userId = UUID(uuidString: userIdString) else {
             return
         }
@@ -145,8 +146,8 @@ class AuthenticationService: ObservableObject {
     }
 
     func signOut() {
-        userDefaults.removeObject(forKey: authTokenKey)
-        userDefaults.removeObject(forKey: userIdKey)
+        try? KeychainManager.shared.delete(service: keychainService, account: authTokenKey)
+        try? KeychainManager.shared.delete(service: keychainService, account: userIdKey)
 
         DispatchQueue.main.async {
             self.isAuthenticated = false

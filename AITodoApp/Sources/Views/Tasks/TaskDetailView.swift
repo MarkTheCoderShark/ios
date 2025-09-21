@@ -57,8 +57,8 @@ struct TaskDetailView: View {
                 try viewContext.save()
                 dismiss()
             } catch {
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                print("Failed to delete task: \(error.localizedDescription)")
+                // TODO: Show error alert to user
             }
         }
     }
@@ -124,8 +124,8 @@ struct TaskHeaderView: View {
             do {
                 try viewContext.save()
             } catch {
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                print("Failed to update task status: \(error.localizedDescription)")
+                // TODO: Show error alert to user
             }
         }
     }

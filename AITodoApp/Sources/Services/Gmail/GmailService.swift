@@ -23,7 +23,8 @@ class GmailService: ObservableObject {
         }
 
         do {
-            guard let presentingViewController = UIApplication.shared.windows.first?.rootViewController else {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let presentingViewController = windowScene.windows.first?.rootViewController else {
                 await MainActor.run {
                     self.errorMessage = "Unable to present Google Sign In"
                     self.isLoading = false
@@ -31,14 +32,14 @@ class GmailService: ObservableObject {
                 return
             }
 
-            let config = GIDConfiguration(clientID: "your-google-client-id")
+            let config = GIDConfiguration(clientID: SecureConfiguration.shared.googleClientID)
             GIDSignIn.sharedInstance.configuration = config
 
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController)
 
             if let accessToken = result.user.accessToken.tokenString {
                 self.accessToken = accessToken
-                UserDefaults.standard.set(accessToken, forKey: "gmail_access_token")
+                try? KeychainManager.shared.saveString(accessToken, service: "AITodoApp", account: "gmail_access_token")
 
                 await MainActor.run {
                     self.isConnected = true
@@ -57,7 +58,7 @@ class GmailService: ObservableObject {
 
     func disconnectGmail() {
         accessToken = nil
-        UserDefaults.standard.removeObject(forKey: "gmail_access_token")
+        try? KeychainManager.shared.delete(service: "AITodoApp", account: "gmail_access_token")
 
         DispatchQueue.main.async {
             self.isConnected = false
@@ -158,7 +159,7 @@ class GmailService: ObservableObject {
     }
 
     private func checkConnectionStatus() {
-        if let token = UserDefaults.standard.string(forKey: "gmail_access_token") {
+        if let token = try? KeychainManager.shared.readString(service: "AITodoApp", account: "gmail_access_token") {
             accessToken = token
             isConnected = true
         }

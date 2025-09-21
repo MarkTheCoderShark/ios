@@ -20,7 +20,7 @@ class MessagingService: ObservableObject {
     }
 
     private func setupSocketConnection() {
-        guard let url = URL(string: "ws://localhost:3001") else { return }
+        guard let url = URL(string: SecureConfiguration.shared.websocketURL) else { return }
 
         manager = SocketManager(socketURL: url, config: [
             .log(true),

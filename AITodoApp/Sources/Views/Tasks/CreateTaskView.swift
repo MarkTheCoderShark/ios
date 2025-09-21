@@ -119,8 +119,8 @@ struct CreateTaskView: View {
                 try viewContext.save()
                 dismiss()
             } catch {
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                print("Failed to create task: \(error.localizedDescription)")
+                // TODO: Show error alert to user
             }
         }
     }
@@ -258,8 +258,8 @@ struct EditTaskView: View {
                 try viewContext.save()
                 dismiss()
             } catch {
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                print("Failed to create task: \(error.localizedDescription)")
+                // TODO: Show error alert to user
             }
         }
     }

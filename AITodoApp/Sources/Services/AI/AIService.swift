@@ -7,7 +7,7 @@ class AIService: ObservableObject {
     @Published var taskSuggestions: [TaskSuggestion] = []
 
     private let baseURL = "https://api.openai.com/v1"
-    private let apiKey = "your-openai-api-key"
+    private let apiKey = SecureConfiguration.shared.openAIAPIKey
     private var cancellables = Set<AnyCancellable>()
 
     func generateDailyBrief() async -> DailyBrief? {
