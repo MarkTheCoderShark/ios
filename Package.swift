@@ -33,6 +33,7 @@ let package = Package(
             path: "AITodoApp/Sources"),
         .testTarget(
             name: "AITodoAppTests",
-            dependencies: ["AITodoApp"]),
+            dependencies: ["AITodoApp"],
+            path: "AITodoApp/Tests"),
     ]
 )
