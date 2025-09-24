@@ -9,14 +9,13 @@ extension Publisher {
         maxRetries: Int = 3,
         baseDelay: TimeInterval = 1.0,
         maxDelay: TimeInterval = 60.0
-    ) -> Publishers.TryMap<Publishers.Catch<Self, Publishers.Delay<Just<Self.Output>, DispatchQueue>>, Self.Output> {
+    ) -> Publishers.Catch<Self, Publishers.Delay<Just<Self.Output>, DispatchQueue>> {
 
         return self.catch { error -> Publishers.Delay<Just<Self.Output>, DispatchQueue> in
             let delay = Swift.min(baseDelay * pow(2.0, Double(maxRetries)), maxDelay)
             return Just(self.output)
                 .delay(for: .seconds(delay), scheduler: DispatchQueue.global())
         }
-        .tryMap { $0 }
     }
 
     /// Assigns to multiple KeyPaths simultaneously
@@ -24,11 +23,14 @@ extension Publisher {
         to keyPaths: [ReferenceWritableKeyPath<Root, Self.Output>],
         on object: Root
     ) -> AnyCancellable {
-        return sink(receiveValue: { value in
-            keyPaths.forEach { keyPath in
-                object[keyPath: keyPath] = value
+        return sink(
+            receiveCompletion: { _ in },
+            receiveValue: { value in
+                keyPaths.forEach { keyPath in
+                    object[keyPath: keyPath] = value
+                }
             }
-        })
+        )
     }
 }
 
@@ -66,7 +68,7 @@ where S.Input == Output, S.Failure == Error {
 
     private var subscriber: S?
     private let asyncWork: () async throws -> Output
-    private var task: Swift.Task<Void, Never>?
+    private var task: Task<Void, Never>?
 
     init(subscriber: S, asyncWork: @escaping () async throws -> Output) {
         self.subscriber = subscriber
@@ -76,7 +78,7 @@ where S.Input == Output, S.Failure == Error {
     func request(_ demand: Subscribers.Demand) {
         guard demand > 0 else { return }
 
-        task = Swift.Task {
+        task = Task {
             do {
                 let result = try await asyncWork()
                 _ = subscriber?.receive(result)
