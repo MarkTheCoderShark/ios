@@ -68,7 +68,7 @@ where S.Input == Output, S.Failure == Error {
 
     private var subscriber: S?
     private let asyncWork: () async throws -> Output
-    private var task: Task<Void, Never>?
+    private var task: Swift.Task<Void, Never>?
 
     init(subscriber: S, asyncWork: @escaping () async throws -> Output) {
         self.subscriber = subscriber
@@ -78,7 +78,7 @@ where S.Input == Output, S.Failure == Error {
     func request(_ demand: Subscribers.Demand) {
         guard demand > 0 else { return }
 
-        task = Task {
+        task = Swift.Task {
             do {
                 let result = try await asyncWork()
                 _ = subscriber?.receive(result)
