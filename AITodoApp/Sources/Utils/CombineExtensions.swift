@@ -84,7 +84,7 @@ where S.Input == SubscriptionOutput, S.Failure == Error {
         DispatchQueue.global().async { [weak self] in
             guard let self = self, !self.isCancelled else { return }
             
-            Task {
+            _ = Task {
                 do {
                     let result = try await self.asyncWork()
                     guard !self.isCancelled else { return }
@@ -111,4 +111,5 @@ extension AnyPublisher {
         return AsyncPublisher(asyncWork).eraseToAnyPublisher()
     }
 }
+
 
