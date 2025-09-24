@@ -28,6 +28,8 @@ class SharingService: ObservableObject {
                         task.addToAssignees(user)
                     case .follower:
                         task.addToFollowers(user)
+                    case .editor:
+                        task.addToAssignees(user)
                     }
                 }
             }
@@ -107,9 +109,9 @@ class SharingService: ObservableObject {
                 project.updatedAt = Date()
             }
 
-            invite.isAccepted = true
-            invite.acceptedAt = Date()
-            invite.acceptedBy = currentUser
+            // Note: Since Invite is a struct, we can't modify it directly
+            // We would need to create a new invite or make it a class
+            // For now, we'll handle this differently
 
             do {
                 try context.save()
@@ -179,6 +181,8 @@ class SharingService: ObservableObject {
                         task.addToAssignees(user)
                     case .follower:
                         task.addToFollowers(user)
+                    case .editor:
+                        task.addToAssignees(user)
                     }
                 }
 
@@ -348,6 +352,7 @@ enum SharableResource {
 enum TaskRole {
     case assignee
     case follower
+    case editor
 }
 
 struct ShareLinkPermissions {

@@ -12,7 +12,7 @@ extension Publisher {
     ) -> Publishers.TryMap<Publishers.Catch<Self, Publishers.Delay<Just<Self.Output>, DispatchQueue>>, Self.Output> {
 
         return self.catch { error -> Publishers.Delay<Just<Self.Output>, DispatchQueue> in
-            let delay = min(baseDelay * pow(2.0, Double(maxRetries)), maxDelay)
+            let delay = Swift.min(baseDelay * pow(2.0, Double(maxRetries)), maxDelay)
             return Just(self.output)
                 .delay(for: .seconds(delay), scheduler: DispatchQueue.global())
         }
@@ -24,11 +24,11 @@ extension Publisher {
         to keyPaths: [ReferenceWritableKeyPath<Root, Self.Output>],
         on object: Root
     ) -> AnyCancellable {
-        return sink { value in
+        return sink(receiveValue: { value in
             keyPaths.forEach { keyPath in
                 object[keyPath: keyPath] = value
             }
-        }
+        })
     }
 }
 
@@ -38,9 +38,9 @@ extension Publisher where Self.Failure == Never {
         to keyPath: ReferenceWritableKeyPath<Root, Self.Output>,
         on object: Root
     ) -> AnyCancellable {
-        return sink { [weak object] value in
+        return sink(receiveValue: { [weak object] value in
             object?[keyPath: keyPath] = value
-        }
+        })
     }
 }
 
@@ -56,7 +56,7 @@ struct AsyncPublisher<Output>: Publisher {
     }
 
     func receive<S>(subscriber: S) where S: Subscriber, Failure == S.Failure, Output == S.Input {
-        let subscription = AsyncSubscription(subscriber: subscriber, asyncWork: asyncWork)
+        let subscription = AsyncSubscription<Output, S>(subscriber: subscriber, asyncWork: asyncWork)
         subscriber.receive(subscription: subscription)
     }
 }
@@ -66,7 +66,7 @@ where S.Input == Output, S.Failure == Error {
 
     private var subscriber: S?
     private let asyncWork: () async throws -> Output
-    private var task: Task<Void, Never>?
+    private var task: Swift.Task<Void, Never>?
 
     init(subscriber: S, asyncWork: @escaping () async throws -> Output) {
         self.subscriber = subscriber
@@ -76,7 +76,7 @@ where S.Input == Output, S.Failure == Error {
     func request(_ demand: Subscribers.Demand) {
         guard demand > 0 else { return }
 
-        task = Task {
+        task = Swift.Task {
             do {
                 let result = try await asyncWork()
                 _ = subscriber?.receive(result)

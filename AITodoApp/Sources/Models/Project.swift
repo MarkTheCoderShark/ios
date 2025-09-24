@@ -2,7 +2,7 @@ import Foundation
 import CoreData
 
 public enum ProjectVisibility: String, CaseIterable {
-    case private = "private"
+    case `private` = "private"
     case shared = "shared"
 }
 
@@ -35,7 +35,7 @@ extension Project {
     @NSManaged public var memberships: NSSet?
 
     public var visibility: ProjectVisibility {
-        get { ProjectVisibility(rawValue: visibilityRaw) ?? .private }
+        get { ProjectVisibility(rawValue: visibilityRaw) ?? .`private` }
         set { visibilityRaw = newValue.rawValue }
     }
 }

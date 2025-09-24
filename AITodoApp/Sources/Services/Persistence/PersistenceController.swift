@@ -20,7 +20,7 @@ struct PersistenceController {
         sampleProject.id = UUID()
         sampleProject.name = "Sample Project"
         sampleProject.projectDescription = "A sample project for preview"
-        sampleProject.visibility = .private
+        sampleProject.visibility = .`private`
         sampleProject.createdAt = Date()
         sampleProject.updatedAt = Date()
         sampleProject.isArchived = false

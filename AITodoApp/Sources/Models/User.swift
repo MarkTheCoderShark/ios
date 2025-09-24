@@ -40,4 +40,16 @@ extension User {
 
     @objc(removeOwnedProjects:)
     @NSManaged public func removeFromOwnedProjects(_ values: NSSet)
+
+    @objc(addProjectMembershipsObject:)
+    @NSManaged public func addToProjectMemberships(_ value: ProjectMembership)
+
+    @objc(removeProjectMembershipsObject:)
+    @NSManaged public func removeFromProjectMemberships(_ value: ProjectMembership)
+
+    @objc(addProjectMemberships:)
+    @NSManaged public func addToProjectMemberships(_ values: NSSet)
+
+    @objc(removeProjectMemberships:)
+    @NSManaged public func removeFromProjectMemberships(_ values: NSSet)
 }
