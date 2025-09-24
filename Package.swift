@@ -4,7 +4,8 @@ import PackageDescription
 let package = Package(
     name: "AITodoApp",
     platforms: [
-        .iOS(.v14)
+        .iOS(.v14),
+        .macOS(.v10_15)
     ],
     products: [
         .library(
