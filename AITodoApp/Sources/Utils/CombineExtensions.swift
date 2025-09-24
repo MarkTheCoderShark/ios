@@ -70,7 +70,7 @@ where S.Input == SubscriptionOutput, S.Failure == Error {
 
     private var subscriber: S?
     private let asyncWork: () async throws -> SubscriptionOutput
-    private var task: Swift.Task<Void, Never>?
+    private var isCancelled = false
 
     init(subscriber: S, asyncWork: @escaping () async throws -> SubscriptionOutput) {
         self.subscriber = subscriber
@@ -78,21 +78,27 @@ where S.Input == SubscriptionOutput, S.Failure == Error {
     }
 
     func request(_ demand: Subscribers.Demand) {
-        guard demand > 0 else { return }
+        guard demand > 0 && !isCancelled else { return }
 
-        task = Swift.Task {
-            do {
-                let result = try await asyncWork()
-                _ = subscriber?.receive(result)
-                subscriber?.receive(completion: .finished)
-            } catch {
-                subscriber?.receive(completion: .failure(error))
+        DispatchQueue.global().async { [weak self] in
+            guard let self = self, !self.isCancelled else { return }
+            
+            Task {
+                do {
+                    let result = try await self.asyncWork()
+                    guard !self.isCancelled else { return }
+                    _ = self.subscriber?.receive(result)
+                    self.subscriber?.receive(completion: .finished)
+                } catch {
+                    guard !self.isCancelled else { return }
+                    self.subscriber?.receive(completion: .failure(error))
+                }
             }
         }
     }
 
     func cancel() {
-        task?.cancel()
+        isCancelled = true
         subscriber = nil
     }
 }
