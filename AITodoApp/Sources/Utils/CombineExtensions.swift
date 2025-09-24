@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import _Concurrency
 
 // MARK: - Combine Extensions for Better Usage Patterns
 
@@ -110,3 +111,4 @@ extension AnyPublisher {
         return AsyncPublisher(asyncWork).eraseToAnyPublisher()
     }
 }
+

@@ -340,8 +340,3 @@ struct ConversationNotificationSettings: Codable {
     var isMuted = false
 }
 
-enum NotificationLevel: String, Codable, CaseIterable {
-    case all = "all"
-    case mentions = "mentions"
-    case muted = "muted"
-}

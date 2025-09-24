@@ -12,7 +12,7 @@ public enum ConversationRole: String, CaseIterable {
     case commenter = "commenter"
 }
 
-public enum NotificationLevel: String, CaseIterable {
+public enum NotificationLevel: String, CaseIterable, Codable {
     case all = "all"
     case mentions = "mentions"
     case muted = "muted"
