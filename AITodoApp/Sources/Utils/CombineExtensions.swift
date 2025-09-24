@@ -9,13 +9,14 @@ extension Publisher {
         maxRetries: Int = 3,
         baseDelay: TimeInterval = 1.0,
         maxDelay: TimeInterval = 60.0
-    ) -> Publishers.Catch<Self, Publishers.Delay<Just<Self.Output>, DispatchQueue>> {
-
-        return self.catch { error -> Publishers.Delay<Just<Self.Output>, DispatchQueue> in
+    ) -> AnyPublisher<Self.Output, Self.Failure> {
+        return self.catch { error -> AnyPublisher<Self.Output, Self.Failure> in
             let delay = Swift.min(baseDelay * pow(2.0, Double(maxRetries)), maxDelay)
-            return Just(self.output)
+            return self
                 .delay(for: .seconds(delay), scheduler: DispatchQueue.global())
+                .eraseToAnyPublisher()
         }
+        .eraseToAnyPublisher()
     }
 
     /// Assigns to multiple KeyPaths simultaneously
@@ -48,29 +49,30 @@ extension Publisher where Self.Failure == Never {
 
 // MARK: - Custom Publishers
 
-struct AsyncPublisher<Output>: Publisher {
+struct AsyncPublisher<PublisherOutput>: Publisher {
+    typealias Output = PublisherOutput
     typealias Failure = Error
 
-    private let asyncWork: () async throws -> Output
+    private let asyncWork: () async throws -> PublisherOutput
 
-    init(_ asyncWork: @escaping () async throws -> Output) {
+    init(_ asyncWork: @escaping () async throws -> PublisherOutput) {
         self.asyncWork = asyncWork
     }
 
     func receive<S>(subscriber: S) where S: Subscriber, Failure == S.Failure, Output == S.Input {
-        let subscription = AsyncSubscription<Output, S>(subscriber: subscriber, asyncWork: asyncWork)
+        let subscription = AsyncSubscription<PublisherOutput, S>(subscriber: subscriber, asyncWork: asyncWork)
         subscriber.receive(subscription: subscription)
     }
 }
 
-private class AsyncSubscription<Output, S: Subscriber>: Subscription
-where S.Input == Output, S.Failure == Error {
+private class AsyncSubscription<SubscriptionOutput, S: Subscriber>: Subscription
+where S.Input == SubscriptionOutput, S.Failure == Error {
 
     private var subscriber: S?
-    private let asyncWork: () async throws -> Output
+    private let asyncWork: () async throws -> SubscriptionOutput
     private var task: Swift.Task<Void, Never>?
 
-    init(subscriber: S, asyncWork: @escaping () async throws -> Output) {
+    init(subscriber: S, asyncWork: @escaping () async throws -> SubscriptionOutput) {
         self.subscriber = subscriber
         self.asyncWork = asyncWork
     }
@@ -98,7 +100,7 @@ where S.Input == Output, S.Failure == Error {
 // MARK: - Usage Examples for the codebase
 
 extension AnyPublisher {
-    static func fromAsync<Output>(_ asyncWork: @escaping () async throws -> Output) -> AnyPublisher<Output, Error> {
+    static func fromAsync<PublisherOutput>(_ asyncWork: @escaping () async throws -> PublisherOutput) -> AnyPublisher<PublisherOutput, Error> {
         return AsyncPublisher(asyncWork).eraseToAnyPublisher()
     }
 }
