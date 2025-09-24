@@ -81,7 +81,7 @@ where S.Input == SubscriptionOutput, S.Failure == Error {
     func request(_ demand: Subscribers.Demand) {
         guard demand > 0 && !isCancelled else { return }
 
-        Task.detached { [weak self] in
+        Swift.Task.detached { [weak self] in
             guard let self = self, !self.isCancelled else { return }
 
             do {
