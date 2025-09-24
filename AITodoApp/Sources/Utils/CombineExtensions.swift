@@ -81,19 +81,17 @@ where S.Input == SubscriptionOutput, S.Failure == Error {
     func request(_ demand: Subscribers.Demand) {
         guard demand > 0 && !isCancelled else { return }
 
-        DispatchQueue.global().async { [weak self] in
+        Task.detached { [weak self] in
             guard let self = self, !self.isCancelled else { return }
-            
-            _ = Task {
-                do {
-                    let result = try await self.asyncWork()
-                    guard !self.isCancelled else { return }
-                    _ = self.subscriber?.receive(result)
-                    self.subscriber?.receive(completion: .finished)
-                } catch {
-                    guard !self.isCancelled else { return }
-                    self.subscriber?.receive(completion: .failure(error))
-                }
+
+            do {
+                let result = try await self.asyncWork()
+                guard !self.isCancelled else { return }
+                _ = self.subscriber?.receive(result)
+                self.subscriber?.receive(completion: .finished)
+            } catch {
+                guard !self.isCancelled else { return }
+                self.subscriber?.receive(completion: .failure(error))
             }
         }
     }
@@ -111,5 +109,7 @@ extension AnyPublisher {
         return AsyncPublisher(asyncWork).eraseToAnyPublisher()
     }
 }
+
+
 
 
