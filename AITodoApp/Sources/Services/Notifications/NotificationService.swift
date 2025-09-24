@@ -1,6 +1,8 @@
 import Foundation
 import UserNotifications
+#if os(iOS)
 import UIKit
+#endif
 import Combine
 
 class NotificationService: NSObject, ObservableObject {
@@ -37,9 +39,11 @@ class NotificationService: NSObject, ObservableObject {
     }
 
     func registerForRemoteNotifications() async {
+        #if os(iOS)
         await MainActor.run {
             UIApplication.shared.registerForRemoteNotifications()
         }
+        #endif
     }
 
     func scheduleTaskReminder(for task: Task) {
